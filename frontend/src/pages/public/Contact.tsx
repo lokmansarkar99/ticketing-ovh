@@ -43,7 +43,7 @@ const Contact: FC<IContactProps> = () => {
 
             </p>
             <p className="text-sm flex items-start justify-start gap-1">
-              <MdLocationOn size={18} className="text-secondary"/> Updated AWS CI/CD Address 
+              <MdLocationOn size={18} className="text-secondary"/> Address Changed
             </p>
           </div>
 
