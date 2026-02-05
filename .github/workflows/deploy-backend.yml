@@ -56,24 +56,41 @@ jobs:
           script: |
             set -e
             
+            # Load NVM and Node.js
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+            
+            # Verify Node/NPM available
+            echo "Node version: $(node -v)"
+            echo "NPM version: $(npm -v)"
+            echo "PM2 version: $(pm2 -v)"
+            
+            # Navigate to project
             cd /home/ubuntu/projects/ticketing/backend
             
             # Pull latest code
+            echo "Fetching latest code..."
             git fetch --all
             git reset --hard origin/main
             
             # Install dependencies
+            echo "Installing dependencies..."
             npm ci
             
             # Generate Prisma client
+            echo "Generating Prisma client..."
             npx prisma generate
             
             # Build
+            echo "Building application..."
             npm run build
             
             # Restart PM2
+            echo "Restarting PM2 process..."
             pm2 restart prantik-api || pm2 start ecosystem.config.js
             pm2 save
             
-            # Show status
+            # Show final status
+            echo "Deployment complete!"
             pm2 list
+            pm2 logs prantik-api --lines 10 --nostream
