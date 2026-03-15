@@ -114,9 +114,10 @@ const UpdateUser: FC<IUpdateUserProps> = ({ id }) => {
   );
   const { data: roleListData, isLoading: roleLoading } =
     useGetAllUserRoleListQuery({});
-  const { data: counterList, isLoading: counterLoading } = useGetCountersQuery(
-    {}
-  );
+  const { data: counterList, isLoading: counterLoading } = useGetCountersQuery({
+    page: 1,
+    size: 99999,
+  });
   const [updateUser, { isLoading: updateUserLoading, error: updateUserError }] =
     useUpdateUserMutation({});
 
