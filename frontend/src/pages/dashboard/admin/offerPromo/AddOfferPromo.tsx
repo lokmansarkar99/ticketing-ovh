@@ -25,6 +25,9 @@ import {
 } from "@/components/ui/select";
 import { addUpdateFareForm } from "@/utils/constants/form/addUpdateFareForm";
 import SelectSkeleton from "@/components/common/skeleton/SelectSkeleton";
+import {
+  toUtcISOStringFromLocalInput,
+} from "@/utils/helpers/dateTimeLocal";
 
 interface IAddOfferPromoProps {
   setOfferState: (state: (prev: any) => any) => void;
@@ -77,8 +80,8 @@ const AddOfferPromo: FC<IAddOfferPromoProps> = ({ setOfferState }) => {
       const addResult = await addOffer({
         ...data,
         image: imageUrl,
-        startDate: new Date(data.startDate + "Z"), 
-        endDate: new Date(data.endDate + "Z"),
+        startDate: toUtcISOStringFromLocalInput(data.startDate),
+        endDate: toUtcISOStringFromLocalInput(data.endDate),
       }).unwrap();
 
       if (addResult?.success) {

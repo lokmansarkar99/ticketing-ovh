@@ -22,6 +22,10 @@ import {
 import { useGetRoutesQuery } from "@/store/api/vehiclesSchedule/routeApi";
 import { addUpdateFareForm } from "@/utils/constants/form/addUpdateFareForm";
 import {
+  toLocalDateTimeInputValue,
+  toUtcISOStringFromLocalInput,
+} from "@/utils/helpers/dateTimeLocal";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -83,12 +87,8 @@ const EditOfferPromo: FC<IEditOfferPromoProps> = ({ id }) => {
       setValue("routeId", routeId);
 
       // Convert to local datetime-local format (no timezone)
-      const formattedStart = startDate
-        ? new Date(startDate).toISOString().slice(0, 19)
-        : "";
-      const formattedEnd = endDate
-        ? new Date(endDate).toISOString().slice(0, 19)
-        : "";
+      const formattedStart = toLocalDateTimeInputValue(startDate);
+      const formattedEnd = toLocalDateTimeInputValue(endDate);
 
       setStartDateInputValue(formattedStart);
       setEndDateInputValue(formattedEnd);
@@ -117,8 +117,8 @@ const EditOfferPromo: FC<IEditOfferPromoProps> = ({ id }) => {
           throw new Error("Image upload failed");
         }
       }
-      formData.startDate = new Date(formData.startDate).toISOString();
-      formData.endDate = new Date(formData.endDate).toISOString();
+      formData.startDate = toUtcISOStringFromLocalInput(formData.startDate);
+      formData.endDate = toUtcISOStringFromLocalInput(formData.endDate);
       const result = await updateOffer({ id, data: formData }).unwrap();
 
       if (result?.success) {
