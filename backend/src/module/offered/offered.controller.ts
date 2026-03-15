@@ -2,12 +2,60 @@ import { NextFunction, Request, Response } from "express"
 import prisma from "../../utils/prisma"
 import { Prisma } from "@prisma/client"
 
+const parseDiscountFromCode = (code: string) => {
+    if (!code) return null;
+    const match = code.match(/(\d+(?:\.\d+)?)/);
+    if (!match) return null;
+    const amount = Math.round(Number(match[1]));
+    if (!Number.isFinite(amount) || amount <= 0) return null;
+    const upper = code.toUpperCase();
+    const discountType = code.includes("%") || upper.includes("PERCENT") || upper.includes("PCT")
+        ? "Percentage"
+        : "Fixed";
+    return { discountType, discount: amount };
+};
+
 export const createOffered = async (req: Request, res: Response, next: NextFunction) => {
     try {
-       
-        const result = await prisma.offered.create({
-            data: req.body
-        })
+        const { couponCode, startDate, endDate } = req.body || {};
+        const parsed = couponCode ? parseDiscountFromCode(String(couponCode)) : null;
+
+        const result = await prisma.$transaction(async (tx) => {
+            const created = await tx.offered.create({
+                data: req.body
+            });
+
+            if (couponCode && parsed) {
+                const existing = await tx.discount.findFirst({
+                    where: { title: String(couponCode) }
+                });
+
+                if (existing) {
+                    await tx.discount.update({
+                        where: { id: existing.id },
+                        data: {
+                            title: String(couponCode),
+                            discountType: parsed.discountType,
+                            discount: parsed.discount,
+                            startDate,
+                            endDate,
+                        }
+                    });
+                } else {
+                    await tx.discount.create({
+                        data: {
+                            title: String(couponCode),
+                            discountType: parsed.discountType,
+                            discount: parsed.discount,
+                            startDate,
+                            endDate,
+                        }
+                    });
+                }
+            }
+
+            return created;
+        });
         res.status(200).send({
             success: true,
             statusCode: 200,
@@ -148,15 +196,56 @@ export const updateOffered = async (req: Request, res: Response, next: NextFunct
                 message: 'Offered Not Found'
             })
         }
-       
 
+        const { couponCode, startDate, endDate } = req.body || {};
+        const effectiveCoupon = couponCode ?? findOffered.couponCode;
+        const parsed = effectiveCoupon ? parseDiscountFromCode(String(effectiveCoupon)) : null;
+        const finalStartDate = startDate ?? findOffered.startDate;
+        const finalEndDate = endDate ?? findOffered.endDate;
 
-        const result = await prisma.offered.update({
-            where: {
-                id,
-            },
-            data: req.body
-        })
+        const result = await prisma.$transaction(async (tx) => {
+            const updated = await tx.offered.update({
+                where: {
+                    id,
+                },
+                data: req.body
+            });
+
+            if (effectiveCoupon && parsed) {
+                const previousTitle = findOffered.couponCode && couponCode && couponCode !== findOffered.couponCode
+                    ? findOffered.couponCode
+                    : String(effectiveCoupon);
+
+                const existing = await tx.discount.findFirst({
+                    where: { title: String(previousTitle) }
+                });
+
+                if (existing) {
+                    await tx.discount.update({
+                        where: { id: existing.id },
+                        data: {
+                            title: String(effectiveCoupon),
+                            discountType: parsed.discountType,
+                            discount: parsed.discount,
+                            startDate: finalStartDate,
+                            endDate: finalEndDate,
+                        }
+                    });
+                } else {
+                    await tx.discount.create({
+                        data: {
+                            title: String(effectiveCoupon),
+                            discountType: parsed.discountType,
+                            discount: parsed.discount,
+                            startDate: finalStartDate,
+                            endDate: finalEndDate,
+                        }
+                    });
+                }
+            }
+
+            return updated;
+        });
         res.status(200).send({
             success: true,
             statusCode: 200,
