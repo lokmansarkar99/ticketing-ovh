@@ -1,17 +1,18 @@
 import { NextFunction, Request, Response } from "express"
 import prisma from "../../utils/prisma"
-import { Prisma } from "@prisma/client"
+import { Prisma, DiscountType } from "@prisma/client"
 
-const parseDiscountFromCode = (code: string) => {
+const parseDiscountFromCode = (code: string): { discountType: DiscountType; discount: number } | null => {
     if (!code) return null;
     const match = code.match(/(\d+(?:\.\d+)?)/);
     if (!match) return null;
     const amount = Math.round(Number(match[1]));
     if (!Number.isFinite(amount) || amount <= 0) return null;
     const upper = code.toUpperCase();
-    const discountType = code.includes("%") || upper.includes("PERCENT") || upper.includes("PCT")
-        ? "Percentage"
-        : "Fixed";
+    const discountType: DiscountType =
+        code.includes("%") || upper.includes("PERCENT") || upper.includes("PCT")
+            ? DiscountType.Percentage
+            : DiscountType.Fixed;
     return { discountType, discount: amount };
 };
 
