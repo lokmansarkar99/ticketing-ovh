@@ -32,10 +32,10 @@ import useMessageGenerator from "@/utils/hooks/useMessageGenerator";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
-import { FC, useState } from "react";
+import { FC, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { IFareStateProps } from "./FareList";
-import { buildPairs, Station } from "./buldFare";
+import { buildPairs, buildStations, Station } from "./buldFare";
 import { useGetSeatPlansQuery } from "@/store/api/vehiclesSchedule/seatPlanApi";
 
 interface IAddFareProps {
@@ -114,11 +114,17 @@ const AddFare: FC<IAddFareProps> = ({ setFareState }) => {
   const [fares, setFares] = useState<FareRow[]>([]);
 
 
-  const findRoute = routesData?.data?.find(
-    (r: any) => r.id === watch("routeId")
-  );
+  const routeId = watch("routeId");
+  const findRoute = routesData?.data?.find((r: any) => r.id === routeId);
 
-  const pairs = buildPairs(findRoute?.viaRoute || []);
+  const stations = buildStations(findRoute);
+  const pairs = buildPairs(stations);
+  const stationMap = new Map(stations.map((station) => [station.id, station]));
+
+  useEffect(() => {
+    setSelectedPair("");
+    setFares([]);
+  }, [routeId]);
 
   const handleAdd = () => {
     if (!selectedPair) return;
@@ -126,12 +132,12 @@ const AddFare: FC<IAddFareProps> = ({ setFareState }) => {
     const fromId = Number(fromIdStr);
     const toId = Number(toIdStr);
 
-    const fromStation = findRoute?.viaRoute?.find(
-      (v: any) => v.station.id === fromId
-    )!.station;
-    const toStation = findRoute?.viaRoute?.find(
-      (v: any) => v.station.id === toId
-    )!.station;
+    const fromStation = stationMap.get(fromId);
+    const toStation = stationMap.get(toId);
+    if (!fromStation || !toStation) {
+      setSelectedPair("");
+      return;
+    }
 
     // Prevent duplicate
     if (fares.some((f) => f.from.id === fromId && f.to.id === toId)) {
@@ -176,6 +182,29 @@ const AddFare: FC<IAddFareProps> = ({ setFareState }) => {
       b_class_amount: Number(fare.b_class_amount) || 0,
       sleeper_class_amount: Number(fare.sleeper_class_amount) || 0,
     }));
+
+    const routeFrom = findRoute?.from;
+    const routeTo = findRoute?.to;
+    const hasMainSegment =
+      typeof routeFrom === "number" &&
+      typeof routeTo === "number" &&
+      mappedSegmentFare.some(
+        (seg) => seg.fromStationId === routeFrom && seg.toStationId === routeTo
+      );
+
+    if (!hasMainSegment) {
+      toast({
+        title: translate(
+          "à¦ªà§à¦°à¦§à¦¾à¦¨ à¦¸à§‡à¦—à¦®à§‡à¦¨à§à¦Ÿ à¦®à¦¿à¦¸à¦¿à¦‚",
+          "Main segment missing"
+        ),
+        description: translate(
+          "à¦°à§à¦Ÿ à¦¶à§à¦°à§ à¦¥à§‡à¦•à§‡ à¦—à¦¨à§à¦¤à¦¬à§à¦¯ à¦¸à§à¦Ÿà§‡à¦¶à¦¨ à¦ªà¦°à§à¦¯à¦¨à§à¦¤ à¦à¦•à¦Ÿà¦¿ à¦¸à§‡à¦—à¦®à§‡à¦¨à§à¦Ÿ à¦à¦¬à¦¶à§à¦¯à¦•à¥¤",
+          "Please add the main segment from the starting to the ending station."
+        ),
+      });
+      return;
+    }
 
     
     const update: AddUpdateFareDataProps = {
@@ -488,6 +517,7 @@ const AddFare: FC<IAddFareProps> = ({ setFareState }) => {
               </select>
 
               <button
+                type="button"
                 className="bg-primary text-white px-4 py-2 rounded-lg disabled:opacity-60"
                 onClick={handleAdd}
                 disabled={!selectedPair}
