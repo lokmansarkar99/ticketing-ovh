@@ -79,11 +79,13 @@ const SleeperSeatLayout: FC<ISeatLayoutProps> = ({
     );
     if (isSeatSelected) return "bg-[#00BFFF] text-white";
 
-    // Previously it used `order?.order?.gender`, you might need to fetch this info differently now
     if (isBooked) {
-      return order?.order?.gender === "Male"
-        ? "bg-red-700 text-white"
-        : "bg-[#BD06D3] text-white";
+      const gender = String(order?.order?.gender || "")
+        .trim()
+        .toLowerCase();
+      if (gender === "female") return "bg-[#BD06D3] text-white";
+      if (gender === "male") return "bg-red-700 text-white";
+      return "bg-red-700 text-white"; // Default to male color when gender is missing
     }
 
     return "bg-white text-black"; // Available

@@ -75,7 +75,7 @@ router.use('/expense', expenseRouter);
 router.use('/expense-category', expenseCategoryRouter);
 router.use('/expense-accounts', expenseAccountsRouter);
 router.use('/expense-category-accounts', expenseCategoryAccountsRouter);
-router.use('/expense-subcategory-accounts', expenseSubCategoryAccountsRouter);
+router.use('/expense-subcategory-accounts', expenseSubCategoryAccountsRouter); 
 router.use('/collection', collectionRouter);
 router.use('/discount', discountRouter);
 router.use('/payment', paymentRouter);
