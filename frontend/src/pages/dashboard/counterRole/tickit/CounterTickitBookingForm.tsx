@@ -1791,12 +1791,12 @@ const CounterTickitBookingForm: FC<ICounterBookingFormProps> = ({
                               {translate("লিঙ্গ", "Gender")}
                             </td>
                             <td className="border  px-2 py-1">
-                              <Select
-                                value={sharedFormState.gender || "Male"}
-                                onValueChange={(value) =>
-                                  handleFieldUpdate("gender", value)
-                                }
-                              >
+                                <Select
+                                  value={watch("gender") || "Male"}
+                                  onValueChange={(value) =>
+                                    handleFieldUpdate("gender", value)
+                                  }
+                                >
                                 <SelectTrigger
                                   id="gender"
                                   className="w-full h-7 text-xs"

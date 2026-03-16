@@ -445,7 +445,7 @@ export const getCoachList = async (req: Request, res: Response, next: NextFuncti
                 orderSeat: {
                     where: {
                         status: {
-                            in: ["Success", "Cancelled", "Migrate"]
+                            in: ["Success", "Cancelled", "Migrate", "Pending"]
                         }
                     },
                     select: {
@@ -968,7 +968,7 @@ export const getCoachListCounter = async (req: Request, res: Response, next: Nex
                 orderSeat: {
                     where: {
                         status: {
-                            in: ["Success", "Cancelled", "Migrate"]
+                            in: ["Success", "Cancelled", "Migrate", "Pending"]
                         }
                     },
                     select: {
