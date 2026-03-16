@@ -1054,7 +1054,7 @@ const BookingForm: FC<IBookingFormProps> = ({
                       </td>
                       <td className="border px-2 py-1">
                         <Select
-                          value={sharedFormState.gender || "Male"}
+                          value={watch("gender") || "Male"}
                           onValueChange={(value) =>
                             handleFieldUpdate("gender", value)
                           }
