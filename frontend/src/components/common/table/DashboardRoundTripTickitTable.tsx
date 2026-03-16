@@ -75,6 +75,17 @@ const DashboardRoundTripTickitTable: FC<IGenericBookingTableProps> = ({
 
     setSelectedBookingCoach(coachInfo);
   };
+
+  const getAvailableSeats = (coach: any) => {
+    const soldCount =
+      coach?.orderSeat?.filter((s: any) => s.status === "Success").length || 0;
+    const baseAvailable =
+      typeof coach?.seatAvailable === "number"
+        ? coach.seatAvailable
+        : (coach?.coach?.seatPlan?.noOfSeat || 0) - soldCount;
+    const counterBooked = coach?.CounterBookedSeat?.length || 0;
+    return Math.max(0, baseAvailable - counterBooked);
+  };
   const [addBookingSeat, { isLoading: addBookingSeatLoading }] =
     useAddBookingSeatMutation();
 
@@ -603,10 +614,7 @@ const DashboardRoundTripTickitTable: FC<IGenericBookingTableProps> = ({
                     : "0"}
                 </td>
                 <td className="border border-gray-300 px-2 py-1">
-                  {item?.coach?.seatPlan?.noOfSeat -
-                      item?.orderSeat?.filter(
-                        (s: any) => s.status === "Success"
-                      ).length}
+                  {getAvailableSeats(item)}
                 </td>
 
                 {/* <td className="border border-gray-300 p-2">

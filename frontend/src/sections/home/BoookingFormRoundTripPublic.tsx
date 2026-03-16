@@ -574,7 +574,7 @@ const BoookingFormRoundTripPublic: FC<IBookingFormProps> = ({
                       </td>
                       <td className="p-2 border">
                         <Select
-                          value={sharedFormState.gender || ""}
+                          value={watch("gender") || ""}
                           onValueChange={(value) =>
                             handleFieldUpdate("gender", value)
                           }

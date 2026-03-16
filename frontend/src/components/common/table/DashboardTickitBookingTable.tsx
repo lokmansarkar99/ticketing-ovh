@@ -61,6 +61,17 @@ const DashboardTickitBookingTable: FC<IBookingTickitTableProps> = ({
     });
   };
  
+  const getAvailableSeats = (coach: any) => {
+    const soldCount =
+      coach?.orderSeat?.filter((s: any) => s.status === "Success").length || 0;
+    const baseAvailable =
+      typeof coach?.seatAvailable === "number"
+        ? coach.seatAvailable
+        : (coach?.coach?.seatPlan?.noOfSeat || 0) - soldCount;
+    const counterBooked = coach?.CounterBookedSeat?.length || 0;
+    return Math.max(0, baseAvailable - counterBooked);
+  };
+
   const modifiedCoachData = coachData?.map((item: any) => ({
     ...item,
     coach: {
@@ -424,10 +435,7 @@ const DashboardTickitBookingTable: FC<IBookingTickitTableProps> = ({
                       : "0"}
                   </td>
                   <td className="border border-gray-300 py-1 px-2">
-                    {coach?.coach?.seatPlan?.noOfSeat -
-                      coach?.orderSeat?.filter(
-                        (s: any) => s.status === "Success"
-                      ).length}
+                    {getAvailableSeats(coach)}
                   </td>
                   {/* <td className="border border-gray-300 p-2">
                 {translate(
