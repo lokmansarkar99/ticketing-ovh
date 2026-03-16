@@ -1043,7 +1043,7 @@ const RoundTripFormModal: FC<ICounterBookingFormProps> = ({
                   </td>
                   <td className="border px-2 py-1.5">
                     <Select
-                      value={sharedFormState.gender || "Male"}
+                      value={watch("gender") || "Male"}
                       onValueChange={(value) =>
                         handleFieldUpdate("gender", value)
                       }

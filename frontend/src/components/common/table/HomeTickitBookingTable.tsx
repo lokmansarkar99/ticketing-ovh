@@ -52,6 +52,17 @@ const HomeTickitBookingTable: FC<IBookingTickitTableProps> = ({
     });
   };
 
+  const getAvailableSeats = (coach: any) => {
+    const soldCount =
+      coach?.orderSeat?.filter((s: any) => s.status === "Success").length || 0;
+    const baseAvailable =
+      typeof coach?.seatAvailable === "number"
+        ? coach.seatAvailable
+        : (coach?.coach?.seatPlan?.noOfSeat || 0) - soldCount;
+    const counterBooked = coach?.CounterBookedSeat?.length || 0;
+    return Math.max(0, baseAvailable - counterBooked);
+  };
+
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full text-center border-collapse border border-gray-300">
@@ -400,10 +411,7 @@ const HomeTickitBookingTable: FC<IBookingTickitTableProps> = ({
                       )}{" "}
                     </td>
                     <td className="border border-gray-300 px-2 text-sm">
-                      {coach?.coach?.seatPlan?.noOfSeat -
-                        coach?.orderSeat?.filter(
-                          (s: any) => s.status === "Success"
-                        ).length}
+                      {getAvailableSeats(coach)}
                     </td>
 
                     <td className="border border-gray-300 px-2 text-xs">
