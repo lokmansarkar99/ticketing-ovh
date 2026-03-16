@@ -40,7 +40,7 @@ import { CalendarIcon } from "lucide-react";
 import { FC, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { IFareStateProps } from "./FareList";
-import { buildPairs, Station } from "./buldFare";
+import { buildPairs, buildStations, Station } from "./buldFare";
 
 interface IUpdateFareProps {
   setFareState: (
@@ -111,10 +111,11 @@ const UpdateFare: FC<IUpdateFareProps> = ({ setFareState, id }) => {
   const [selectedPair, setSelectedPair] = useState<string>("");
   const [fares, setFares] = useState<FareRow[]>([]);
 
-  const findRoute = routesData?.data?.find(
-    (r: any) => r.id === watch("routeId")
-  );
-  const pairs = buildPairs(findRoute?.viaRoute || []);
+  const routeId = watch("routeId");
+  const findRoute = routesData?.data?.find((r: any) => r.id === routeId);
+  const stations = buildStations(findRoute);
+  const pairs = buildPairs(stations);
+  const stationMap = new Map(stations.map((station) => [station.id, station]));
 
   useEffect(() => {
     if (fareData?.data) {
@@ -153,18 +154,16 @@ const UpdateFare: FC<IUpdateFareProps> = ({ setFareState, id }) => {
 
       const initialFares =
         fareData.data.SegmentFare?.map((segment: any) => {
-          const fromStation = findRoute?.viaRoute?.find(
-            (v: any) => v.station.id === segment.fromStationId
-          )?.station || {
-            id: segment.fromStationId,
-            name: `Station ${segment.fromStationId}`,
-          };
-          const toStation = findRoute?.viaRoute?.find(
-            (v: any) => v.station.id === segment.toStationId
-          )?.station || {
-            id: segment.toStationId,
-            name: `Station ${segment.toStationId}`,
-          };
+          const fromStation =
+            stationMap.get(segment.fromStationId) || {
+              id: segment.fromStationId,
+              name: `Station ${segment.fromStationId}`,
+            };
+          const toStation =
+            stationMap.get(segment.toStationId) || {
+              id: segment.toStationId,
+              name: `Station ${segment.toStationId}`,
+            };
           return {
             id: segment?.id || 0,
             isActive: segment?.isActive,
@@ -186,12 +185,10 @@ const UpdateFare: FC<IUpdateFareProps> = ({ setFareState, id }) => {
     const fromId = Number(fromIdStr);
     const toId = Number(toIdStr);
 
-    const fromStation = findRoute?.viaRoute?.find(
-      (v: any) => v.station.id === fromId
-    )?.station || { id: fromId, name: `Station ${fromId}` };
-    const toStation = findRoute?.viaRoute?.find(
-      (v: any) => v.station.id === toId
-    )?.station || { id: toId, name: `Station ${toId}` };
+    const fromStation =
+      stationMap.get(fromId) || { id: fromId, name: `Station ${fromId}` };
+    const toStation =
+      stationMap.get(toId) || { id: toId, name: `Station ${toId}` };
 
     if (fares.some((f) => f.from.id === fromId && f.to.id === toId)) {
       setSelectedPair("");
@@ -578,6 +575,7 @@ const UpdateFare: FC<IUpdateFareProps> = ({ setFareState, id }) => {
                 ))}
               </select>
               <button
+                type="button"
                 className="bg-primary text-white px-4 py-2 rounded-lg disabled:opacity-60"
                 onClick={handleAdd}
                 disabled={!selectedPair}
