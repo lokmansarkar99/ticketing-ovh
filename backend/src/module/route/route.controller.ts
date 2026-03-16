@@ -56,6 +56,18 @@ export const getRouteAll = async (req: Request, res: Response, next: NextFunctio
                 id: true,
                 from: true,
                 to: true,
+                fromStation: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
+                toStation: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                },
                 viaRoute: {
                     select: {
                         id: true,
