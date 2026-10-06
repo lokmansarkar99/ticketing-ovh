@@ -14,14 +14,13 @@ import sendMail from './utils/sendEmail';
 import { sendSMS } from './utils/sendSMS';
 const app: Application = express();
 
-const allowedOrigin = 'http://localhost:3000';
+const allowedOrigins = process.env.FRONTEND_URLS ? process.env.FRONTEND_URLS.split(',') : [];
+
 app.use(cors({
-    origin: "*",
+    origin: allowedOrigins,
+    credentials: true,
     optionsSuccessStatus: 200
 }));
-
-
-app.use(cors());
 app.use(express.json());
 app.use(cookieParser())
 app.use(express.urlencoded({ extended: true }));

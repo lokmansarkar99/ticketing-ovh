@@ -1,4 +1,5 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+dotenv.config({ path: 'prisma/.env' });
 import serverApp from './app'
 import config from './config';
 const server = async () => {
