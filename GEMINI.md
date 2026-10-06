@@ -27,6 +27,7 @@ This is a full-stack **bus ticketing and fleet management platform** for Prantik
 
 ### General
 - TypeScript is mandatory — avoid `any` types where possible
+- Keep comments minimal, simple, and clean (e.g. `// Cloudinary client setup`). Avoid decorative ASCII banner comments (e.g. `// =====...=====`)
 - Preserve all existing comments and docstrings unless explicitly told to remove them
 - When adding new API routes, register them in `backend/src/router/router.ts`
 - Always handle errors with try-catch in controllers, passing errors to `next()`
@@ -35,7 +36,7 @@ This is a full-stack **bus ticketing and fleet management platform** for Prantik
 - Do NOT create direct database connections — always use the Prisma singleton from `utils/prisma.ts`
 - Do NOT use `cors({ origin: "*" })` in production — use the `FRONTEND_URLS` env variable
 - JWT tokens use separate secrets for access, refresh, and OTP tokens — do not mix them
-- File uploads go to AWS S3 via the `fileUpload` module — do not store files locally
+- File uploads go to Cloudinary via the `fileUpload` module — do not store files locally
 - The Prisma schema uses autoincrement integer IDs, not UUIDs
 
 ## Guide Documentation

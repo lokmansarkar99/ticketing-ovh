@@ -25,6 +25,12 @@ app.use(express.json());
 app.use(cookieParser())
 app.use(express.urlencoded({ extended: true }));
 
+// Simple request logger
+app.use((req: Request, res: Response, next: NextFunction) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    next();
+});
+
 const enforceHostCheck = (req: Request, res: Response, next: NextFunction) => {
     const host = req.get('host');
     if (host === 'localhost:3000') {

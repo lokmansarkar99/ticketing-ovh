@@ -23,6 +23,9 @@ const errorHandler: ErrorRequestHandler = async (
   res: Response,
   next: NextFunction,
 ) => {
+  // Log the error to the backend terminal
+  console.error(`[ERROR] ${req.method} ${req.url} ->`, err);
+
   let statusCode: number = 400
 
   let message: string = err.message

@@ -29,3 +29,8 @@ Apply middleware in this order on routes:
 - All env vars are in `backend/prisma/.env`
 - Access via `process.env.VARIABLE_NAME` (loaded by dotenv in index.ts)
 - For config values, add to `backend/src/config/index.ts`
+
+## Code Style & Comments
+- Keep comments concise and minimal (e.g., `// Cloudinary client setup`).
+- Never use ASCII block/banner dividers (e.g. `// =======...=======`).
+
