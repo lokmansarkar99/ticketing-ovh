@@ -11,7 +11,8 @@
     "build": "tsc",
     "copy:assets": "cpx swagger.yaml dist",
     "postbuild": "npm run copy:assets",
-
+    "seed_users": "ts-node data/seed_users.ts",
+    "seed_all": "ts-node data/seed_all.ts",
     "postinstall": "prisma generate"
   },
   "keywords": [],
