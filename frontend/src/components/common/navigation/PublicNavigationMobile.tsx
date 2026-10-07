@@ -70,7 +70,7 @@ const PublicNavigationMobile = () => {
   const { locale } = useLocaleContext();
   const navigate = useNavigate();
   const { translate, locale: language } = useCustomTranslator();
-  const { role, avatar, phone } = shareAuthentication();
+  const { role, avatar, phone, email } = shareAuthentication();
   const publicLinks = publicNavigationLinksMobile[locale] as any;
 
   const [selected, setSelected] = useState(publicLinks[0].key);
@@ -185,7 +185,7 @@ const PublicNavigationMobile = () => {
                     </DialogContent>
                   </Dialog> */}
                   
-                    {phone ? (
+                    {(phone || email) && !role ? (
                       <li className="flex flex-col justify-center">
                         <div className="border py-1.5  rounded-sm w-11/12 mx-auto">
                           <Link to="/profile/my-profile">

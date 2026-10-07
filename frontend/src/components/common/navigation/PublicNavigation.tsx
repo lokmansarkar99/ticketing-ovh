@@ -40,7 +40,7 @@ const PublicNavigation = () => {
   const { locale } = useLocaleContext();
   const navigate = useNavigate();
   const { translate, locale: language } = useCustomTranslator();
-  const { role, phone, avatar } = shareAuthentication();
+  const { role, phone, email, avatar } = shareAuthentication();
   const publicLinks = publicNavigationLinks[locale] as any;
   const [selected, setSelected] = useState(publicLinks[0].key);
   const { data: cmsData, isLoading } = useGetSingleCMSQuery({});
@@ -133,13 +133,15 @@ const PublicNavigation = () => {
                 </NavLink>
               ))}
             </div>
-            <div>
-              <Link to="customer-auth">
-                <button className="text-sm transition-colors text-white bg-[#ed1c24] px-2.5 py-1 relative flex items-center">
-                  {translate("লগইন", "SignIn/Register")}
-                </button>
-              </Link>
-            </div>
+            {!role && !phone && !email && (
+              <div>
+                <Link to="customer-auth">
+                  <button className="text-sm transition-colors text-white bg-[#ed1c24] px-2.5 py-1 relative flex items-center">
+                    {translate("লগইন", "SignIn/Register")}
+                  </button>
+                </Link>
+              </div>
+            )}
             <ul className="flex items-center gap-x-6">
               <li>
                 <LocaleSwitcher />
@@ -148,8 +150,8 @@ const PublicNavigation = () => {
                 <ThemeSwitcher />
               </li>
               <li>
-                {phone ? (
-                  // ✅ Phone exists → Show My Profile + Logout
+                {(phone || email) && !role ? (
+                  // ✅ Customer logged in → Show My Profile + Logout
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button className="size-9" variant="ghost" size="icon">

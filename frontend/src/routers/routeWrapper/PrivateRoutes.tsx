@@ -10,7 +10,7 @@ const PrivateRoutes: FC<IPrivateRoutesProps> = ({ children }) => {
   const location = useLocation();
   const { email, phone,  } = shareAuthentication();
  
-    if (!email || !phone) {
+    if (!email && !phone) {
       return <Navigate to="/customer-auth" state={{ from: location }} replace />;
     }
   return <>{children}</>;

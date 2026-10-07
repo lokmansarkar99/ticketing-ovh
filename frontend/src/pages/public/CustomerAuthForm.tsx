@@ -39,8 +39,7 @@ const CustomerAuthForm = ({
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
-    phone: "",
-    email: "",
+    credential: "",
     fullName: "",
     password: "",
     confirmPassword: "",
@@ -91,17 +90,17 @@ const CustomerAuthForm = ({
 
 const handleLogin = async (e: React.FormEvent) => {
   e.preventDefault();
-  if (!formData.email || !formData.password) {
+  if (!formData.credential || !formData.password) {
     toast({
       title: translate("ত্রুটি", "Error"),
-      description: toastMessage("Error", "Email and Password are required."),
+      description: toastMessage("Error", "Email/Phone and Password are required."),
     });
     return;
   }
   // Use the loginCustomer mutation for email/password login
   try {
     const result = await loginCustomer({
-      credential: formData.email,
+      credential: formData.credential,
       password: formData.password,
     }).unwrap();
 
@@ -155,8 +154,7 @@ const handleRegister = async (e: React.FormEvent) => {
 
 const handleCreateCustomer = async () => {
   if (
-    !formData.phone ||
-    !formData.email ||
+    !formData.credential ||
     !formData.fullName ||
     !formData.password
   ) {
@@ -170,8 +168,7 @@ const handleCreateCustomer = async () => {
   try {
     // Call the create customer API
     const response = await createCustomer({
-      phone: formData.phone,
-      email: formData.email,
+      credential: formData.credential,
       name: formData.fullName,
       password: formData.password,
     }).unwrap();
@@ -228,8 +225,7 @@ const handleVerifyRegistrationOtp = async () => {
     setRegistrationStep("form");
     setVerificationCode("");
     setFormData({
-      phone: "",
-      email: "",
+      credential: "",
       fullName: "",
       password: "",
       confirmPassword: "",
@@ -271,8 +267,8 @@ const handleVerifyRegistrationOtp = async () => {
 };
 
 const requestCode = async () => {
-  if (!formData.phone) {
-    setOtpError("Please enter a phone number first");
+  if (!formData.credential) {
+    setOtpError("Please enter a phone number or email first");
     return;
   }
 
@@ -281,7 +277,7 @@ const requestCode = async () => {
 
   try {
     // Call the request OTP API
-    const response = await requestOtp({ phone: formData.phone }).unwrap();
+    const response = await requestOtp({ credential: formData.credential }).unwrap();
 
     // Assuming the API returns a token that we need for verification
     if (response.otpToken) {
@@ -312,7 +308,7 @@ const handleResendCode = async () => {
 
   try {
     // Call the request OTP API again
-    const response = await requestOtp({ phone: formData.phone }).unwrap();
+    const response = await requestOtp({ credential: formData.credential }).unwrap();
 
     // Assuming the API returns a token that we need for verification
     if (response.otpToken) {
@@ -375,7 +371,29 @@ const handleVerifyOtp = async () => {
         });
       }
     } else {
-      // For login, you might want to store the auth token and redirect
+      // For login, store the auth token and redirect
+      if (result?.accessToken) {
+        const authData = jwtDecode(result.accessToken) as any;
+
+        toast({
+          title: translate("প্রবেশের জন্য বার্তা", "Login Successful"),
+          description: toastMessage("login", authData?.name || authData?.phone || authData?.email),
+        });
+
+        shareWithCookies(
+          "set",
+          `${appConfiguration.appCode}token`,
+          1440,
+          result.accessToken
+        );
+
+        loadUserFromToken(dispatch);
+        playSound("welcome");
+
+        navigate("/profile/my-profile", {
+          replace: true,
+        });
+      }
     }
   } catch (error: any) {
     const errorMsg = error?.data?.message || "Invalid verification code";
@@ -404,14 +422,14 @@ const handleVerifyOtp = async () => {
                 <>
                   {!showOtpInput ? (
                     <>
-                      <InputWrapper labelFor="phone" label="Phone Number" className="w-full p-0">
+                      <InputWrapper labelFor="credential" label="Email or Phone Number" className="w-full p-0">
                         <div className="relative w-full">
                           <Input
-                            id="phone"
-                            type="tel"
-                            name="phone"
-                            value={formData.phone}
-                            placeholder="Enter your phone number"
+                            id="credential"
+                            type="text"
+                            name="credential"
+                            value={formData.credential}
+                            placeholder="Enter your email or phone number"
                             onChange={handleInputChange}
                             required
                             className="w-full"
@@ -461,7 +479,7 @@ const handleVerifyOtp = async () => {
                       <p className="text-gray-600 text-center">
                         Please enter the verification code sent to
                         <br />
-                        <span className="font-medium">{formData.phone}</span>
+                        <span className="font-medium">{formData.credential}</span>
                       </p>
 
                       <div className="flex justify-center gap-2">
@@ -544,7 +562,7 @@ const handleVerifyOtp = async () => {
                           onClick={() => setShowOtpInput(false)}
                           className="text-[#c004d4] text-sm font-medium"
                         >
-                          ← Back to phone input
+                          ← Back to input
                         </button>
                       </div>
                     </div>
@@ -552,13 +570,13 @@ const handleVerifyOtp = async () => {
                 </>
               ) : (
                 <>
-                  <InputWrapper labelFor="email" label="Email Or Phone" className="w-full p-0">
+                  <InputWrapper labelFor="credential" label="Email Or Phone" className="w-full p-0">
                     <div className="relative">
                       <Input
-                        id="email"
+                        id="credential"
                         type="text"
-                        name="email"
-                        value={formData.email}
+                        name="credential"
+                        value={formData.credential}
                         placeholder="Enter your email or phone"
                         onChange={handleInputChange}
                         required
@@ -604,7 +622,7 @@ const handleVerifyOtp = async () => {
                       onClick={() => setLoginMethod("phone")}
                       className="text-[#c004d4] text-sm font-medium"
                     >
-                      ← Back to phone login
+                      ← Back to OTP login
                     </button>
                   </div>
 
@@ -627,33 +645,19 @@ const handleVerifyOtp = async () => {
               <h2 className="text-2xl font-bold dark:text-white mb-6 text-center text-[#c004d4]">
                 {registrationStep === "form"
                   ? "Create Account"
-                  : "Verify Phone"}
+                  : "Verify Account"}
               </h2>
 
               {registrationStep === "form" ? (
                 <>
-                 <InputWrapper labelFor="phone" label="Phone Number" className="w-full p-0">
+                 <InputWrapper labelFor="credential" label="Email or Phone Number" className="w-full p-0">
                     <div className="relative">
                       <Input
-                        id="phone"
-                        type="tel"
-                        name="phone"
-                        value={formData.phone}
-                        placeholder="Enter your phone number"
-                        onChange={handleInputChange}
-                        required
-                      />
-                    </div>
-                  </InputWrapper>
-
-                    <InputWrapper labelFor="email" label="Email Address" className="w-full p-0">
-                    <div className="relative">
-                      <Input
-                        id="email"
-                        type="email"
-                        name="email"
-                        value={formData.email}
-                        placeholder="Enter your email"
+                        id="credential"
+                        type="text"
+                        name="credential"
+                        value={formData.credential}
+                        placeholder="Enter your email or phone number"
                         onChange={handleInputChange}
                         required
                       />
@@ -779,7 +783,7 @@ const handleVerifyOtp = async () => {
                   <p className="text-gray-600 text-center">
                     Please enter the verification code sent to
                     <br />
-                    <span className="font-medium">{formData.phone}</span>
+                    <span className="font-medium">{formData.credential}</span>
                   </p>
 
                   <div className="flex justify-center gap-2">

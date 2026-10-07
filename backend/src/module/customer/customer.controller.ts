@@ -5,6 +5,7 @@ import { Prisma } from "@prisma/client";
 import { sendSMS } from "../../utils/sendSMS";
 import { createToken } from "../../utils/token.utils";
 import bcrypt from "bcrypt";
+import sendMail from "../../utils/sendEmail";
 
 function maskPhone(phone: string) {
     return `${phone.slice(0, 3)}******${phone.slice(phone.length - 2)}`;
@@ -48,36 +49,51 @@ export const customerChangePassword = async (req: Request, res: Response, next: 
 
 export const createCustomer = async (req: Request, res: Response, next: NextFunction) => {
     try {
+        const { password, name, credential } = req.body;
+        const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(credential);
+        let phone = null;
+        let email = null;
 
-        const { password, name, phone, email = "null" } = req.body;
-        const isExistingPhone = await prisma.customer.findUnique({ where: { phone } })
-        if (isExistingPhone) {
-            return res.status(400).send({
-                success: false,
-                statusCode: 400,
-                message: "Customer Phone Already Exist"
-            })
-        }
-        const isExistingEmail = await prisma.customer.findFirst({
-            where: {
-                email: email
+        if (isEmail) {
+            email = credential;
+            const isExistingEmail = await prisma.customer.findUnique({ where: { email } })
+            if (isExistingEmail) {
+                return res.status(400).send({
+                    success: false,
+                    statusCode: 400,
+                    message: "Customer Email Already Exist"
+                })
             }
-        })
-        if (isExistingEmail) {
-            return res.status(400).send({
-                success: false,
-                statusCode: 400,
-                message: "Customer Email Already Exist"
-            })
+        } else {
+            phone = credential;
+            const isExistingPhone = await prisma.customer.findUnique({ where: { phone } })
+            if (isExistingPhone) {
+                return res.status(400).send({
+                    success: false,
+                    statusCode: 400,
+                    message: "Customer Phone Already Exist"
+                })
+            }
         }
+
         const otp = Math.floor(100000 + Math.random() * 900000);
         const otpToken = createToken({ otp, name, email, phone, password: await bcrypt.hash(password, 10) }, "OTP")
-        await sendSMS(phone, `Your OTP is ${otp}`)
+        
+        if (isEmail) {
+            await sendMail({ 
+                email, 
+                subject: "Account Verification OTP", 
+                message: `<h2>Welcome!</h2><p>Your verification OTP is <strong>${otp}</strong></p>`,
+                messageType: "html"
+            });
+        } else {
+            await sendSMS(phone, `Your OTP is ${otp}`);
+        }
 
         res.status(201).send({
             success: true,
             statusCode: 200,
-            message: maskPhone(phone),
+            message: isEmail ? `OTP sent to ${email}` : maskPhone(phone),
             otpToken
         })
     }
@@ -96,20 +112,21 @@ export const createCustomerWithOtp = async (req: Request, res: Response, next: N
                 message: "OTP does not match",
             })
         }
+        
+        const data: any = { password };
+        if (name) data.name = name;
+        if (phone) data.phone = phone;
+        if (email) data.email = email;
+
         const result = await prisma.customer.create({
-            data: {
-                name,
-                phone,
-                email,
-                password
-            }
+            data
         })
 
         const userInfo = {
             id: result.id,
-            name,
-            email,
-            phone,
+            name: result.name,
+            email: result.email,
+            phone: result.phone,
         }
 
 
@@ -134,7 +151,7 @@ export const createCustomerWithOtp = async (req: Request, res: Response, next: N
 export const loginWithOTP = async (req: Request, res: Response, next: NextFunction) => {
     try {
 
-        const { otp: setOtp, phone } = req.user;
+        const { otp: setOtp, phone, email } = req.user;
         const { otp } = req.body;
         if (otp != setOtp) {
             return res.status(400).send({
@@ -143,22 +160,24 @@ export const loginWithOTP = async (req: Request, res: Response, next: NextFuncti
                 message: "OTP does not match",
             })
         }
-        let result = await prisma.customer.findFirst({
-            where: {
-                phone,
+        
+        let result: any;
+        if (email) {
+            result = await prisma.customer.findUnique({ where: { email } });
+            if (!result) {
+                result = await prisma.customer.create({ data: { email } });
             }
-        })
-        if (!result) {
-            result = await prisma.customer.create({
-                data: {
-                    phone,
-                }
-            })
+        } else if (phone) {
+            result = await prisma.customer.findUnique({ where: { phone } });
+            if (!result) {
+                result = await prisma.customer.create({ data: { phone } });
+            }
         }
 
         const userInfo = {
             id: result.id,
-            phone,
+            phone: result.phone,
+            email: result.email,
         }
 
 
@@ -183,25 +202,42 @@ export const loginWithOTP = async (req: Request, res: Response, next: NextFuncti
 
 export const requestOTP = async (req: Request, res: Response, next: NextFunction) => {
     try {
-
-        const { phone } = req.body;
-        if (!phone) {
+        const { credential } = req.body;
+        if (!credential) {
             return res.status(400).send({
                 success: false,
                 statusCode: 400,
-                message: "Phone Number Required"
+                message: "Email or Phone Number Required"
             })
         }
+        
+        const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(credential);
         const otp = Math.floor(100000 + Math.random() * 900000);
-        const otpToken = createToken({ otp, phone }, "OTP")
-        await sendSMS(phone, `Your OTP is ${otp}`)
-
-        res.status(201).send({
-            success: true,
-            statusCode: 200,
-            message: maskPhone(phone),
-            otpToken
-        })
+        
+        if (isEmail) {
+            const otpToken = createToken({ otp, email: credential }, "OTP")
+            await sendMail({ 
+                email: credential, 
+                subject: "Login/Reset OTP", 
+                message: `<h2>Verification Code</h2><p>Your OTP is <strong>${otp}</strong></p>`,
+                messageType: "html"
+            });
+            return res.status(201).send({
+                success: true,
+                statusCode: 200,
+                message: `OTP sent to ${credential}`,
+                otpToken
+            })
+        } else {
+            const otpToken = createToken({ otp, phone: credential }, "OTP")
+            await sendSMS(credential, `Your OTP is ${otp}`)
+            return res.status(201).send({
+                success: true,
+                statusCode: 200,
+                message: maskPhone(credential),
+                otpToken
+            })
+        }
     }
     catch (err) {
         next(err)

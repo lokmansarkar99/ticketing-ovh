@@ -3,8 +3,7 @@ import { Joi, validate } from "express-validation";
 const customerRegisterValidation = {
     body: Joi.object({
         name: Joi.string().optional().allow(''),
-        phone: Joi.string().required(),
-        email: Joi.string().email().optional(),
+        credential: Joi.string().required(),
         password: Joi.string().required().min(6).max(12),
     })
 }
@@ -34,7 +33,7 @@ export const verifyCustomerUpdate = validate(customerUpdateValidation, {}, {})
 
 const requestOtpValidation = {
     body: Joi.object({
-        phone: Joi.string().required(),
+        credential: Joi.string().required(),
     })
 }
 

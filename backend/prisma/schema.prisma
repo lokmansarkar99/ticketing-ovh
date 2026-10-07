@@ -669,8 +669,8 @@ model SegmentFare {
 model Customer {
   id                   Int          @id @default(autoincrement())
   name                 String?
-  phone                String       @unique
-  email                String?
+  phone                String?      @unique
+  email                String?      @unique
   password             String?
   address              String?
   fromStationId        Int?
