@@ -25,9 +25,33 @@ app.use(express.json());
 app.use(cookieParser())
 app.use(express.urlencoded({ extended: true }));
 
-// Simple request logger
+// Advanced request logger that captures response body and status
 app.use((req: Request, res: Response, next: NextFunction) => {
-    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    const start = Date.now();
+    const originalSend = res.send;
+
+    res.send = function (body) {
+        const duration = Date.now() - start;
+        let parsedBody = body;
+        try {
+            if (typeof body === 'string') {
+                parsedBody = JSON.parse(body);
+            }
+        } catch (e) {}
+
+        const status = res.statusCode;
+        const logPrefix = `[${new Date().toISOString()}] ${req.method} ${req.url} - ${status} (${duration}ms)`;
+        
+        if (status >= 400) {
+            console.error(`${logPrefix} ❌ ERROR:`, parsedBody);
+        } else {
+            // Optional: You can omit logging success bodies if they are too large
+            console.log(`${logPrefix} ✅ SUCCESS:`, parsedBody);
+        }
+
+        return originalSend.call(this, body);
+    };
+
     next();
 });
 
