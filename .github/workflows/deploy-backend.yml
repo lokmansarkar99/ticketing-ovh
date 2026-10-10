@@ -1,96 +1,66 @@
-name: Deploy Backend to OVHcloud
+
+name: Deploy Backend to EC2
 
 on:
   push:
     branches: ["main"]
     paths:
       - "backend/**"
+      - "ecosystem.config.cjs"
       - ".github/workflows/deploy-backend.yml"
   workflow_dispatch: {}
 
 concurrency:
   group: backend-production
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: "npm"
-          cache-dependency-path: backend/package-lock.json
-
-      - name: Install dependencies
-        working-directory: backend
-        env:
-          PUPPETEER_SKIP_DOWNLOAD: "true"
-          npm_config_ignore_scripts: "true"
-        run: npm ci
-
-      - name: Generate Prisma Client
-        working-directory: backend
-        env:
-          DATABASE_URL: "mysql://user:pass@localhost:3306/db"
-        run: npx prisma generate
-
-      - name: Build
-        working-directory: backend
-        run: |
-          npm run build --if-present
-          npm run copy:assets --if-present
-
-      - name: Deploy to OVHcloud VPS
+      - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.OVHCLOUD_HOST }}
-          username: ${{ secrets.OVHCLOUD_USER }}
-          key: ${{ secrets.OVHCLOUD_SSH_KEY }}
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script_stop: true
+          command_timeout: 15m
           script: |
-            set -e
-            
-            # Load NVM and Node.js
+            set -eu
+
             export NVM_DIR="$HOME/.nvm"
-            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-            
-            # Verify Node/NPM available
-            echo "Node version: $(node -v)"
-            echo "NPM version: $(npm -v)"
-            echo "PM2 version: $(pm2 -v)"
-            
-            # Navigate to project
-            cd /home/ubuntu/projects/ticketing/backend
-            
-            # Pull latest code
-            echo "Fetching latest code..."
-            git fetch --all
+            if [ -s "$NVM_DIR/nvm.sh" ]; then
+              . "$NVM_DIR/nvm.sh"
+            fi
+
+            cd /home/ubuntu/projects/ticketing
+
+            echo "Fetching source..."
+            git fetch origin main
             git reset --hard origin/main
-            
-            # Install dependencies
+
+            cd backend
+
             echo "Installing dependencies..."
             npm ci
-            
-            # Generate Prisma client
-            echo "Generating Prisma client..."
-            npx prisma generate
-            
-            # Build
-            echo "Building application..."
+
+            echo "Generating Prisma Client..."
+            npx prisma generate --schema=prisma/schema.prisma
+
+            echo "Applying production migrations..."
+            npx prisma migrate deploy --schema=prisma/schema.prisma
+
+            echo "Building backend..."
             npm run build
-            
-            # Restart PM2
-            echo "Restarting PM2 process..."
-            pm2 restart prantik-api || pm2 start ecosystem.config.js
+
+            cd /home/ubuntu/projects/ticketing
+
+            echo "Reloading PM2..."
+            pm2 startOrReload ecosystem.config.cjs --update-env
             pm2 save
-            
-            # Show final status
-            echo "Deployment complete!"
-            pm2 list
-            pm2 logs prantik-api --lines 10 --nostream
+
+            echo "Checking application status..."
+            pm2 status

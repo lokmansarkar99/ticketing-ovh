@@ -1,4 +1,5 @@
-name: Deploy Frontend (S3 + CloudFront)
+
+name: Deploy Frontend to EC2
 
 on:
   push:
@@ -9,50 +10,51 @@ on:
   workflow_dispatch: {}
 
 concurrency:
-  group: frontend-production
-  cancel-in-progress: true
+  group: ticketing-production-deploy
+  cancel-in-progress: false
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install
-        working-directory: frontend
-        run: npm ci
-
-      - name: Build
-        working-directory: frontend
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.0.3
         env:
-          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
-        run: npm run build
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          envs: VITE_API_BASE_URL
+          script_stop: true
+          command_timeout: 15m
+          script: |
+            set -eu
 
-      - name: Upload build to S3
-        shell: bash
-        run: |
-          aws s3 sync frontend/dist "s3://${{ secrets.FRONTEND_S3_BUCKET }}/" --delete
+            export NVM_DIR="$HOME/.nvm"
+            if [ -s "$NVM_DIR/nvm.sh" ]; then
+              . "$NVM_DIR/nvm.sh"
+            fi
 
-      - name: Invalidate CloudFront cache
-        shell: bash
-        run: |
-          aws cloudfront create-invalidation \
-            --distribution-id "${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}" \
-            --paths "/*"
+            cd /home/ubuntu/projects/ticketing
+
+            echo "Fetching source..."
+            git fetch origin main
+            git reset --hard origin/main
+
+            cd frontend
+
+            echo "Installing dependencies..."
+            npm ci
+
+            echo "Building React frontend..."
+            : "${VITE_API_BASE_URL:?VITE_API_BASE_URL is required}"
+            export VITE_API_BASE_URL
+            npm run build
+
+            test -f dist/index.html
+
+            echo "Frontend build completed."
+            echo "Nginx should serve the frontend/dist directory."

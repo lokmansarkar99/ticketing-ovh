@@ -12,6 +12,7 @@ import {
 import {
   useGetSingleCMSQuery,
   useUpdateCMSMutation,
+  useAddCMSMutation,
 } from "@/store/api/cms/contentManagementApi";
 import { useUploadPhotoMutation } from "@/store/api/fileApi";
 import { cmsForm } from "@/utils/constants/form/addUpdateCmsForm";
@@ -88,6 +89,7 @@ const AddContentManagement = () => {
   });
   const [uploadPhoto, { isLoading: uploadPhotoLoading }] =
     useUploadPhotoMutation({});
+  const [addCms, { isLoading: addLoading, error: addError }] = useAddCMSMutation();
   const [editCms, { isLoading, error }] = useUpdateCMSMutation();
   const { data: singleCms, isLoading: singleCmsLoading } = useGetSingleCMSQuery(
     {}
@@ -352,11 +354,17 @@ const AddContentManagement = () => {
         "blogImage"
       ]) as AddUpdateCompanyProps;
 
-      // After processing all images, proceed with CMS update
-      const result = await editCms({
-        id: singleCms?.data?.id,
-        data: updateData,
-      }).unwrap();
+      // After processing all images, proceed with CMS update or creation
+      let result;
+      if (singleCms?.data?.id) {
+        result = await editCms({
+          id: singleCms?.data?.id,
+          data: updateData,
+        }).unwrap();
+      } else {
+        result = await addCms(updateData).unwrap();
+      }
+
       if (result?.success) {
         toast({
           title: translate("সিএমএস আপডেট বার্তা", "CMS Update Message"),
