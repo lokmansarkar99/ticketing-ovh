@@ -21,10 +21,15 @@ jobs:
     steps:
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          DATABASE_NAME: ${{ secrets.DATABASE_NAME }}
+          DATABASE_USER: ${{ secrets.DATABASE_USER }}
+          DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
+          envs: DATABASE_NAME,DATABASE_USER,DATABASE_PASSWORD
           script_stop: true
           command_timeout: 15m
           script: |
@@ -48,6 +53,14 @@ jobs:
 
             echo "Generating Prisma Client..."
             npx prisma generate --schema=prisma/schema.prisma
+
+            echo "Checking migration history..."
+            if ! mysql -h 127.0.0.1 -u "$DATABASE_USER" -p"$DATABASE_PASSWORD" -e "USE $DATABASE_NAME; SHOW TABLES LIKE '_prisma_migrations';" | grep -q '_prisma_migrations'; then
+              echo "No migration history found. Baselining..."
+              mkdir -p prisma/migrations/0_init
+              npx prisma migrate diff --from-empty --to-schema prisma/schema.prisma --script > prisma/migrations/0_init/migration.sql
+              npx prisma migrate resolve --applied 0_init
+            fi
 
             echo "Applying production migrations..."
             npx prisma migrate deploy --schema=prisma/schema.prisma
