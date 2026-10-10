@@ -89,7 +89,7 @@ const AddContentManagement = () => {
   });
   const [uploadPhoto, { isLoading: uploadPhotoLoading }] =
     useUploadPhotoMutation({});
-  const [addCms, { isLoading: addLoading, error: addError }] = useAddCMSMutation();
+  const [addCms] = useAddCMSMutation();
   const [editCms, { isLoading, error }] = useUpdateCMSMutation();
   const { data: singleCms, isLoading: singleCmsLoading } = useGetSingleCMSQuery(
     {}
