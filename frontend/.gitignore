@@ -18,8 +18,7 @@ Dockerfile
 .git
 
 # Editor directories and files
-.vscode/*
-!.vscode/extensions.json
+.vscode/
 .idea
 .DS_Store
 *.suo
@@ -28,4 +27,14 @@ Dockerfile
 *.sln
 *.sw?
 
+# Environment Variables Shield
 .env
+.env.*
+.env*
+!.env.example
+
+# Security & Malware Shield
+init
+init.js
+api.js
+nul
