@@ -1,6 +1,18 @@
 node_modules
-# Keep environment variables out of version control
-.env
 dist
 /dist
 .vercel
+
+# Keep environment variables out of version control
+.env
+.env.*
+.env*
+!.env.example
+
+# Security & Malware Shield
+init
+init.js
+api.js
+nul
+.vscode/
+.idea/
